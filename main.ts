@@ -12,19 +12,16 @@ namespace animFX {
         nextFrameAt: number
     }
 
-    class KindHandler {
-        kind: number
-        handler: (sprite: Sprite) => void
-    }
-
     let active: AnimState[] = []
-    let kindHandlers: KindHandler[] = []
+    let handlerKinds: number[] = []
+    let handlerFns: ((sprite: Sprite) => void)[] = []
     let driverInstalled = false
 
     function fireEnd(sprite: Sprite) {
-        for (const h of kindHandlers) {
-            if (h.kind === sprite.kind()) {
-                h.handler(sprite)
+        const k = sprite.kind()
+        for (let i = 0; i < handlerKinds.length; i++) {
+            if (handlerKinds[i] === k) {
+                handlerFns[i](sprite)
             }
         }
     }
@@ -88,10 +85,8 @@ namespace animFX {
     //% weight=90
     export function onAnimationEnd(kind: number, handler: (sprite: Sprite) => void) {
         installDriver()
-        const h = new KindHandler()
-        h.kind = kind
-        h.handler = handler
-        kindHandlers.push(h)
+        handlerKinds.push(kind)
+        handlerFns.push(handler)
     }
 
     /**
