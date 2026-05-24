@@ -23,7 +23,7 @@ namespace animFX {
 
     function fireEnd(sprite: Sprite) {
         for (const h of kindHandlers) {
-            if (h.kind === sprite.kind) {
+            if (h.kind === sprite.kind()) {
                 h.handler(sprite)
             }
         }
