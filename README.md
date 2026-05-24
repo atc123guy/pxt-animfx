@@ -7,7 +7,7 @@ The built-in `animation.runImageAnimation` has no way to tell you when an animat
 ## Blocks
 
 - `animFX.playAnimation(sprite, frames, intervalMs, loop)` — start an animation. Replaces any animation already running on this sprite.
-- `animFX.onAnimationEnd(sprite, handler)` — runs when an animation finishes naturally on this sprite. Does **not** fire for looped animations or for animations stopped via `stopAnimation`.
+- `animFX.onAnimationEnd(kind, handler)` — runs when an animation finishes naturally on **any sprite of the given SpriteKind**. The handler receives the sprite as an argument. Does **not** fire for looped animations or for animations stopped via `stopAnimation`. Keyed by kind rather than sprite instance so the block can sit at the top of your file and still work — sprite instances don't exist yet when block-emitted code runs at startup.
 - `animFX.stopAnimation(sprite)` — stop any animation on this sprite. Does not fire the end event.
 - `animFX.isAnimating(sprite)` — true while an animation is running on this sprite.
 - `animFX.flipFrames(frames, axis)` — returns a NEW array of frames cloned from the input with each frame flipped horizontally, vertically, or both. The original frames are untouched, so you can keep both directions side-by-side. Flip once at setup time and reuse the result — don't re-flip on every play call.
@@ -17,8 +17,10 @@ The built-in `animation.runImageAnimation` has no way to tell you when an animat
 ```typescript
 let s = sprites.create(img`. F F .`, SpriteKind.Player)
 
-animFX.onAnimationEnd(s, function () {
+animFX.onAnimationEnd(SpriteKind.Player, function (sprite) {
     game.splash("done!")
+    // If you need per-instance behavior, gate it here:
+    // if (sprite == myBoss) { ... }
 })
 
 animFX.playAnimation(s, myFrames, 100, false)
@@ -36,14 +38,14 @@ animFX.playAnimation(s, walkLeft, 100, true)
 
 ## How the end event works
 
-Internally each animation registers in a tracking list. A single `game.onUpdate` loop advances frames and, when a non-looping animation runs past its last frame, removes it from the list and calls `control.raiseEvent(ANIM_END_SRC, sprite.id)`. The `onAnimationEnd` block wires a `control.onEvent` handler keyed to that same sprite id.
+Internally each animation registers in a tracking list. A single `game.onUpdate` loop advances frames and, when a non-looping animation runs past its last frame, removes it from the list and invokes every registered handler whose `kind` matches `sprite.kind`, passing the sprite as the argument. Same shape as `sprites.onOverlap` / `sprites.onCreated`.
 
 ## Caveats
 
 - Looping animations never fire the end event by definition.
 - Manually calling `stopAnimation` does not fire the end event — that's reserved for natural completion.
-- If a sprite is destroyed mid-animation, call `stopAnimation` first; the runner doesn't auto-detect destruction in v1.
-- Sprite ids may be reused if a sprite is destroyed and another created. Avoid relying on end events for sprites that get destroyed mid-animation.
+- If a sprite is destroyed mid-animation, call `stopAnimation` first; the runner doesn't auto-detect destruction.
+- The end-event handler is keyed by sprite kind, not instance. If you have multiple sprites of the same kind animating, the handler fires once for each as they finish — use the `sprite` parameter to distinguish.
 
 ## Use as Extension
 

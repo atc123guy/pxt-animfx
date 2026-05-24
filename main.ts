@@ -3,8 +3,6 @@
  */
 //% color=#7B68EE icon="" block="animFX"
 namespace animFX {
-    const ANIM_END_SRC = 0xA1F1
-
     class AnimState {
         sprite: Sprite
         frames: Image[]
@@ -14,8 +12,22 @@ namespace animFX {
         nextFrameAt: number
     }
 
+    class KindHandler {
+        kind: number
+        handler: (sprite: Sprite) => void
+    }
+
     let active: AnimState[] = []
+    let kindHandlers: KindHandler[] = []
     let driverInstalled = false
+
+    function fireEnd(sprite: Sprite) {
+        for (const h of kindHandlers) {
+            if (h.kind === sprite.kind) {
+                h.handler(sprite)
+            }
+        }
+    }
 
     function installDriver() {
         if (driverInstalled) return
@@ -31,7 +43,7 @@ namespace animFX {
                         s.frameIdx = 0
                     } else {
                         active.removeAt(i)
-                        control.raiseEvent(ANIM_END_SRC, s.sprite.id)
+                        fireEnd(s.sprite)
                         continue
                     }
                 }
@@ -68,15 +80,18 @@ namespace animFX {
     }
 
     /**
-     * Run code when an animation finishes naturally on the given sprite.
+     * Run code when an animation finishes naturally on any sprite of the given kind.
      * Does NOT fire for looped animations or for animations stopped via stopAnimation.
      */
-    //% block="on animation end for $sprite=variables_get(mySprite)"
+    //% block="on $sprite of kind $kind=spritekind animation ended"
+    //% draggableParameters="reporter"
     //% weight=90
-    export function onAnimationEnd(sprite: Sprite, handler: () => void) {
-        if (!sprite) return
+    export function onAnimationEnd(kind: number, handler: (sprite: Sprite) => void) {
         installDriver()
-        control.onEvent(ANIM_END_SRC, sprite.id, handler)
+        const h = new KindHandler()
+        h.kind = kind
+        h.handler = handler
+        kindHandlers.push(h)
     }
 
     /**

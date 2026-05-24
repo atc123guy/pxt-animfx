@@ -34,7 +34,7 @@ let blinkFrames = [
 let blinkFramesFlippedH = animFX.flipFrames(blinkFrames, animFX.FlipAxis.Horizontal)
 let blinkFramesFlippedV = animFX.flipFrames(blinkFrames, animFX.FlipAxis.Vertical)
 
-animFX.onAnimationEnd(player, function () {
+animFX.onAnimationEnd(SpriteKind.Player, function (sprite) {
     game.splash("blink done")
 })
 

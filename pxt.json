@@ -1,6 +1,6 @@
 {
     "name": "animfx",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "description": "Animation playback with end-event signaling for MakeCode Arcade.",
     "dependencies": {
         "device": "*"
