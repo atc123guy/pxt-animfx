@@ -134,11 +134,30 @@ namespace animFX {
     export function flipFrames(frames: Image[], axis: FlipAxis): Image[] {
         const out: Image[] = []
         if (!frames) return out
-        for (const f of frames) {
-            const c = f.clone()
+        for (let i = 0; i < frames.length; i++) {
+            const c = frames[i].clone()
             if (axis === FlipAxis.Horizontal || axis === FlipAxis.Both) c.flipX()
             if (axis === FlipAxis.Vertical || axis === FlipAxis.Both) c.flipY()
             out.push(c)
+        }
+        return out
+    }
+
+    /**
+     * Concatenate multiple animations into a single frame sequence that plays each in order.
+     * Returns a new array; the source animations are not modified.
+     */
+    //% block="combine animations $animations"
+    //% weight=55
+    export function combineAnimations(animations: Image[][]): Image[] {
+        const out: Image[] = []
+        if (!animations) return out
+        for (let i = 0; i < animations.length; i++) {
+            const arr = animations[i]
+            if (!arr) continue
+            for (let j = 0; j < arr.length; j++) {
+                out.push(arr[j])
+            }
         }
         return out
     }

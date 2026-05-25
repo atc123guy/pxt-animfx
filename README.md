@@ -11,6 +11,7 @@ The built-in `animation.runImageAnimation` has no way to tell you when an animat
 - `animFX.stopAnimation(sprite)` — stop any animation on this sprite. Does not fire the end event.
 - `animFX.isAnimating(sprite)` — true while an animation is running on this sprite.
 - `animFX.flipFrames(frames, axis)` — returns a NEW array of frames cloned from the input with each frame flipped horizontally, vertically, or both. The original frames are untouched, so you can keep both directions side-by-side. Flip once at setup time and reuse the result — don't re-flip on every play call.
+- `animFX.combineAnimations(animations)` — concatenates an array of animations into one sequential frame array. Useful for stringing together "wind up + swing + recover" or similar multi-stage motions and then playing them as a single animation. Frames are referenced, not cloned — if you also flip one of the source animations, do that *before* combining.
 
 ## Example
 

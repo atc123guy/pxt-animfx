@@ -56,6 +56,14 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 })
 
+let comboFrames = animFX.combineAnimations([blinkFrames, blinkFramesFlippedH])
+
+controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (!animFX.isAnimating(player)) {
+        animFX.playAnimation(player, comboFrames, 150, false)
+    }
+})
+
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     animFX.stopAnimation(player)
 })
