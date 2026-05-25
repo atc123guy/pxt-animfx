@@ -56,7 +56,7 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 })
 
-let comboFrames = animFX.combineAnimations(blinkFrames, blinkFramesFlippedH)
+let comboFrames = animFX.combineAnimations([blinkFrames, blinkFramesFlippedH])
 
 controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
     if (!animFX.isAnimating(player)) {

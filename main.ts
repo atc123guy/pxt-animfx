@@ -146,24 +146,16 @@ namespace animFX {
     /**
      * Concatenate multiple animations into a single frame sequence that plays each in order.
      * Returns a new array; the source animations are not modified.
-     * Click the + on the block to add more animation slots (up to 6 total).
+     * The block defaults to a "create array with" slot; click the + on that to add more animations.
      */
-    //% block="combine animations $a||$b $c $d $e $f"
-    //% expandableArgumentMode="enabled"
-    //% inlineInputMode="inline"
+    //% block="combine animations $animations"
+    //% animations.shadow="lists_create_with"
     //% weight=55
-    export function combineAnimations(
-        a: Image[],
-        b?: Image[],
-        c?: Image[],
-        d?: Image[],
-        e?: Image[],
-        f?: Image[]
-    ): Image[] {
+    export function combineAnimations(animations: Image[][]): Image[] {
         const out: Image[] = []
-        const all: Image[][] = [a, b, c, d, e, f]
-        for (let i = 0; i < all.length; i++) {
-            const arr = all[i]
+        if (!animations) return out
+        for (let i = 0; i < animations.length; i++) {
+            const arr = animations[i]
             if (!arr) continue
             for (let j = 0; j < arr.length; j++) {
                 out.push(arr[j])
