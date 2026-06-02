@@ -163,4 +163,112 @@ namespace animFX {
         }
         return out
     }
+
+    export enum RotateDegrees {
+        //% block="90° clockwise"
+        Deg90,
+        //% block="180°"
+        Deg180,
+        //% block="270° clockwise"
+        Deg270
+    }
+
+    function rotateOne(src: Image, deg: RotateDegrees): Image {
+        // 180° keeps the same dimensions: flip on both axes.
+        if (deg === RotateDegrees.Deg180) {
+            const c = src.clone()
+            c.flipX()
+            c.flipY()
+            return c
+        }
+        // 90°/270° swap width and height. New canvas starts fully transparent (color 0).
+        const w = src.width
+        const h = src.height
+        const dst = image.create(h, w)
+        for (let x = 0; x < w; x++) {
+            for (let y = 0; y < h; y++) {
+                const col = src.getPixel(x, y)
+                if (!col) continue
+                if (deg === RotateDegrees.Deg90) {
+                    dst.setPixel(h - 1 - y, x, col)
+                } else {
+                    dst.setPixel(y, w - 1 - x, col)
+                }
+            }
+        }
+        return dst
+    }
+
+    /**
+     * Return a new animation with every frame rotated by 90/180/270 degrees clockwise.
+     * 90° and 270° swap each frame's width and height. The original frames are not modified.
+     * Pair with "anchor sprite" to keep a chosen edge planted after the size change.
+     */
+    //% block="rotate frames $frames by $deg"
+    //% frames.shadow="lists_create_with"
+    //% weight=58
+    export function rotateFrames(frames: Image[], deg: RotateDegrees): Image[] {
+        const out: Image[] = []
+        if (!frames) return out
+        for (let i = 0; i < frames.length; i++) {
+            out.push(rotateOne(frames[i], deg))
+        }
+        return out
+    }
+
+    export enum PivotPoint {
+        //% block="center"
+        Center,
+        //% block="top"
+        Top,
+        //% block="bottom"
+        Bottom,
+        //% block="left"
+        Left,
+        //% block="right"
+        Right,
+        //% block="top-left"
+        TopLeft,
+        //% block="top-right"
+        TopRight,
+        //% block="bottom-left"
+        BottomLeft,
+        //% block="bottom-right"
+        BottomRight
+    }
+
+    function pivotX(left: number, w: number, pivot: PivotPoint): number {
+        if (pivot === PivotPoint.Left || pivot === PivotPoint.TopLeft || pivot === PivotPoint.BottomLeft) return left
+        if (pivot === PivotPoint.Right || pivot === PivotPoint.TopRight || pivot === PivotPoint.BottomRight) return left + w
+        return left + w / 2
+    }
+
+    function pivotY(top: number, h: number, pivot: PivotPoint): number {
+        if (pivot === PivotPoint.Top || pivot === PivotPoint.TopLeft || pivot === PivotPoint.TopRight) return top
+        if (pivot === PivotPoint.Bottom || pivot === PivotPoint.BottomLeft || pivot === PivotPoint.BottomRight) return top + h
+        return top + h / 2
+    }
+
+    /**
+     * Reposition a sprite so the chosen pivot point stays put after its frames were rotated.
+     * Call this right after starting a rotated animation, passing the ORIGINAL (un-rotated)
+     * frames so the helper knows the old size. Example: rotate a tall sprite 90° with pivot
+     * "bottom" and its feet stay planted instead of the sprite re-centering.
+     */
+    //% block="anchor $sprite=variables_get(mySprite) at $pivot using original frames $original"
+    //% original.shadow="lists_create_with"
+    //% weight=52
+    export function anchorSprite(sprite: Sprite, pivot: PivotPoint, original: Image[]): void {
+        if (!sprite || !original || original.length === 0) return
+        const ow = original[0].width
+        const oh = original[0].height
+        const oldLeft = sprite.x - ow / 2
+        const oldTop = sprite.y - oh / 2
+        const oldX = pivotX(oldLeft, ow, pivot)
+        const oldY = pivotY(oldTop, oh, pivot)
+        const newX = pivotX(sprite.left, sprite.width, pivot)
+        const newY = pivotY(sprite.top, sprite.height, pivot)
+        sprite.x += oldX - newX
+        sprite.y += oldY - newY
+    }
 }
