@@ -6,8 +6,9 @@ The built-in `animation.runImageAnimation` has no way to tell you when an animat
 
 ## Blocks
 
-- `animFX.playAnimation(sprite, frames, intervalMs, loop)` — start an animation. Replaces any animation already running on this sprite.
-- `animFX.onAnimationEnd(kind, handler)` — runs when an animation finishes naturally on **any sprite of the given SpriteKind**. The handler receives the sprite as an argument. Does **not** fire for looped animations or for animations stopped via `stopAnimation`. Keyed by kind rather than sprite instance so the block can sit at the top of your file and still work — sprite instances don't exist yet when block-emitted code runs at startup.
+- `animFX.playAnimation(sprite, frames, intervalMs, loop, name?)` — start an animation. Replaces any animation already running on this sprite. The optional **name** labels the animation so the end/loop events can target it; leave it blank for an unnamed animation.
+- `animFX.onAnimationEnd(kind, name, handler)` — runs when a **non-looping** animation finishes naturally on **any sprite of the given SpriteKind**. The handler receives the sprite as an argument. Leave **name** blank to match an animation of any name, or set it to fire only for that named animation. Does **not** fire for looped animations or for animations stopped via `stopAnimation`. Keyed by kind rather than sprite instance so the block can sit at the top of your file and still work — sprite instances don't exist yet when block-emitted code runs at startup.
+- `animFX.onAnimationLoop(kind, name, handler)` — runs **each time a looping animation wraps past its last frame and starts over**, on any sprite of the given kind. This is the loop counterpart to `onAnimationEnd` (looping animations never "end", so use this to react once per cycle). Same name-matching rule: blank **name** matches any animation, a set name matches only that one.
 - `animFX.stopAnimation(sprite)` — stop any animation on this sprite. Does not fire the end event.
 - `animFX.isAnimating(sprite)` — true while an animation is running on this sprite.
 - `animFX.flipFrames(frames, axis)` — returns a NEW array of frames cloned from the input with each frame flipped horizontally, vertically, or both. The original frames are untouched, so you can keep both directions side-by-side. Flip once at setup time and reuse the result — don't re-flip on every play call.
@@ -20,13 +21,19 @@ The built-in `animation.runImageAnimation` has no way to tell you when an animat
 ```typescript
 let s = sprites.create(img`. F F .`, SpriteKind.Player)
 
-animFX.onAnimationEnd(SpriteKind.Player, function (sprite) {
+animFX.onAnimationEnd(SpriteKind.Player, "attack", function (sprite) {
     game.splash("done!")
     // If you need per-instance behavior, gate it here:
     // if (sprite == myBoss) { ... }
 })
 
-animFX.playAnimation(s, myFrames, 100, false)
+// Count how many times the idle loop comes around:
+animFX.onAnimationLoop(SpriteKind.Player, "idle", function (sprite) {
+    info.changeScoreBy(1)
+})
+
+animFX.playAnimation(s, attackFrames, 100, false, "attack")   // fires onAnimationEnd
+animFX.playAnimation(s, idleFrames, 100, true, "idle")        // fires onAnimationLoop each cycle
 ```
 
 ### Flipping frames for direction changes
@@ -51,14 +58,16 @@ animFX.playAnimation(s, walkUp, 100, true)
 animFX.anchorSprite(s, animFX.PivotPoint.Bottom, walkRight)
 ```
 
-## How the end event works
+## How the end and loop events work
 
-Internally each animation registers in a tracking list. A single `game.onUpdate` loop advances frames and, when a non-looping animation runs past its last frame, removes it from the list and invokes every registered handler whose `kind` matches `sprite.kind`, passing the sprite as the argument. Same shape as `sprites.onOverlap` / `sprites.onCreated`.
+Internally each animation registers in a tracking list along with its name. A single `game.onUpdate` loop advances frames. When a **non-looping** animation runs past its last frame, it's removed from the list and every `onAnimationEnd` handler whose `kind` matches `sprite.kind` (and whose name matches, or is blank) is invoked with the sprite. When a **looping** animation wraps past its last frame back to frame 0, every matching `onAnimationLoop` handler fires instead — once per cycle. Same shape as `sprites.onOverlap` / `sprites.onCreated`.
+
+Name matching is a simple equality check with a blank-is-wildcard rule: a handler registered with an empty name matches every animation, while a named handler matches only animations played with that exact name.
 
 ## Caveats
 
-- Looping animations never fire the end event by definition.
-- Manually calling `stopAnimation` does not fire the end event — that's reserved for natural completion.
+- Looping animations never fire the **end** event by definition — use `onAnimationLoop` to react each time they come around.
+- Manually calling `stopAnimation` does not fire the end or loop event — that's reserved for natural completion/wrapping.
 - If a sprite is destroyed mid-animation, call `stopAnimation` first; the runner doesn't auto-detect destruction.
 - The end-event handler is keyed by sprite kind, not instance. If you have multiple sprites of the same kind animating, the handler fires once for each as they finish — use the `sprite` parameter to distinguish.
 

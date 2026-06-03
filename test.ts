@@ -34,25 +34,35 @@ let blinkFrames = [
 let blinkFramesFlippedH = animFX.flipFrames(blinkFrames, animFX.FlipAxis.Horizontal)
 let blinkFramesFlippedV = animFX.flipFrames(blinkFrames, animFX.FlipAxis.Vertical)
 
-animFX.onAnimationEnd(SpriteKind.Player, function (sprite) {
+let loopCount = 0
+
+// Fires only when the "blink" animation finishes (non-looping).
+animFX.onAnimationEnd(SpriteKind.Player, "blink", function (sprite) {
     game.splash("blink done")
+})
+
+// Fires every time the looping "spin" animation starts over.
+animFX.onAnimationLoop(SpriteKind.Player, "spin", function (sprite) {
+    loopCount += 1
+    info.setScore(loopCount)
 })
 
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (!animFX.isAnimating(player)) {
-        animFX.playAnimation(player, blinkFrames, 150, false)
+        animFX.playAnimation(player, blinkFrames, 150, false, "blink")
     }
 })
 
 controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
     if (!animFX.isAnimating(player)) {
-        animFX.playAnimation(player, blinkFramesFlippedH, 150, false)
+        animFX.playAnimation(player, blinkFramesFlippedH, 150, false, "blink")
     }
 })
 
 controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     if (!animFX.isAnimating(player)) {
-        animFX.playAnimation(player, blinkFramesFlippedV, 150, false)
+        // Looping animation named "spin" — drives the onAnimationLoop handler above.
+        animFX.playAnimation(player, blinkFramesFlippedV, 150, true, "spin")
     }
 })
 
@@ -60,7 +70,7 @@ let comboFrames = animFX.combineAnimations([blinkFrames, blinkFramesFlippedH])
 
 controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
     if (!animFX.isAnimating(player)) {
-        animFX.playAnimation(player, comboFrames, 150, false)
+        animFX.playAnimation(player, comboFrames, 150, false, "combo")
     }
 })
 

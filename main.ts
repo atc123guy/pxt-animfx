@@ -10,18 +10,33 @@ namespace animFX {
         loop: boolean
         frameIdx: number
         nextFrameAt: number
+        name: string
     }
 
     let active: AnimState[] = []
-    let handlerKinds: number[] = []
-    let handlerFns: ((sprite: Sprite) => void)[] = []
+    let endKinds: number[] = []
+    let endNames: string[] = []
+    let endFns: ((sprite: Sprite) => void)[] = []
+    let loopKinds: number[] = []
+    let loopNames: string[] = []
+    let loopFns: ((sprite: Sprite) => void)[] = []
     let driverInstalled = false
 
-    function fireEnd(sprite: Sprite) {
+    // An empty handler name is a wildcard: it matches an animation of any name.
+    function fireEnd(sprite: Sprite, name: string) {
         const k = sprite.kind()
-        for (let i = 0; i < handlerKinds.length; i++) {
-            if (handlerKinds[i] === k) {
-                handlerFns[i](sprite)
+        for (let i = 0; i < endKinds.length; i++) {
+            if (endKinds[i] === k && (endNames[i] === "" || endNames[i] === name)) {
+                endFns[i](sprite)
+            }
+        }
+    }
+
+    function fireLoop(sprite: Sprite, name: string) {
+        const k = sprite.kind()
+        for (let i = 0; i < loopKinds.length; i++) {
+            if (loopKinds[i] === k && (loopNames[i] === "" || loopNames[i] === name)) {
+                loopFns[i](sprite)
             }
         }
     }
@@ -37,10 +52,15 @@ namespace animFX {
                 s.frameIdx++
                 if (s.frameIdx >= s.frames.length) {
                     if (s.loop) {
+                        // Wrapped past the last frame: restart and signal the loop event.
                         s.frameIdx = 0
+                        s.sprite.setImage(s.frames[0])
+                        s.nextFrameAt = now + s.intervalMs
+                        fireLoop(s.sprite, s.name)
+                        continue
                     } else {
                         active.removeAt(i)
-                        fireEnd(s.sprite)
+                        fireEnd(s.sprite, s.name)
                         continue
                     }
                 }
@@ -56,12 +76,14 @@ namespace animFX {
      * @param frames the frames of the animation
      * @param intervalMs milliseconds between frames
      * @param loop whether to loop the animation
+     * @param name a label for this animation so end/loop events can target it; leave blank for an unnamed animation
      */
-    //% block="play animation on $sprite=variables_get(mySprite) frames $frames every $intervalMs ms loop $loop"
+    //% block="play animation on $sprite=variables_get(mySprite) named $name frames $frames every $intervalMs ms loop $loop"
+    //% name.defl=""
     //% intervalMs.defl=100
     //% loop.defl=false
     //% weight=100
-    export function playAnimation(sprite: Sprite, frames: Image[], intervalMs: number, loop: boolean) {
+    export function playAnimation(sprite: Sprite, frames: Image[], intervalMs: number, loop: boolean, name: string = "") {
         if (!sprite || !frames || frames.length === 0) return
         stopAnimation(sprite)
         installDriver()
@@ -70,6 +92,7 @@ namespace animFX {
         s.frames = frames
         s.intervalMs = intervalMs
         s.loop = loop
+        s.name = name ? name : ""
         s.frameIdx = 0
         s.nextFrameAt = game.runtime() + intervalMs
         sprite.setImage(frames[0])
@@ -77,16 +100,35 @@ namespace animFX {
     }
 
     /**
-     * Run code when an animation finishes naturally on any sprite of the given kind.
-     * Does NOT fire for looped animations or for animations stopped via stopAnimation.
+     * Run code when a non-looping animation finishes naturally on any sprite of the given kind.
+     * Leave the name blank to match animations of any name; set a name to match only that animation.
+     * Does NOT fire for looped animations (use "animation looped") or for animations stopped via stopAnimation.
      */
-    //% block="on $sprite of kind $kind=spritekind animation ended"
+    //% block="on $sprite of kind $kind=spritekind animation $name ended"
+    //% name.defl=""
     //% draggableParameters="reporter"
     //% weight=90
-    export function onAnimationEnd(kind: number, handler: (sprite: Sprite) => void) {
+    export function onAnimationEnd(kind: number, name: string, handler: (sprite: Sprite) => void) {
         installDriver()
-        handlerKinds.push(kind)
-        handlerFns.push(handler)
+        endKinds.push(kind)
+        endNames.push(name)
+        endFns.push(handler)
+    }
+
+    /**
+     * Run code each time a LOOPING animation wraps past its last frame and starts over,
+     * on any sprite of the given kind. Leave the name blank to match animations of any name.
+     * Fires once per loop cycle; does not fire for non-looping animations (use "animation ended").
+     */
+    //% block="on $sprite of kind $kind=spritekind animation $name looped"
+    //% name.defl=""
+    //% draggableParameters="reporter"
+    //% weight=88
+    export function onAnimationLoop(kind: number, name: string, handler: (sprite: Sprite) => void) {
+        installDriver()
+        loopKinds.push(kind)
+        loopNames.push(name)
+        loopFns.push(handler)
     }
 
     /**
